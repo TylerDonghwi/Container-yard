@@ -1,7 +1,5 @@
-/* ENGGEN131 Project - C Project - 2021 */
 /* Container Yard */
-
-/* Author: Tyler Kim UoA ID: 364969506 */
+/* Author: Tyler Kim 2021*/
 
 #include <stdio.h>
 #define NUM_ROWS 8
@@ -19,13 +17,59 @@ void AddContainer(int floor[NUM_ROWS][NUM_COLS], int position, int size, int dir
 int LocateContainer(int floor[NUM_ROWS][NUM_COLS], char move, int *rowStart, int *colStart, int *rowEnd, int *colEnd);
 int MoveContainer(int floor[NUM_ROWS][NUM_COLS], int r0, int c0, int r1, int c1, int isBlocked);
 
-int main()
+char GetMove(void)
 {
-	int floor[NUM_ROWS][NUM_COLS];
+	char move;
+	printf("\nMove container: ");
+	scanf("%c", &move);
+	// Ignore non-capital letter inputs
+	while ((move < 'A') || (move > 'Z')) {
+		scanf("%c", &move);
+	}
+	return move;
+}
 
-	/* Simple test code for Tasks 1 and 2 */
+int main(void)
+{
+	int gameOver = 0;
+	int isBlocked = 0;
+	int floor[NUM_ROWS][NUM_COLS];
+	int rowStart, colStart, rowEnd, colEnd;
+	char input;
+
+	/* Print banner */
+	printf("............**********************************............\n");
+	printf("............* CONTAINER YARD GAME SIMULATION *............\n");
+	printf("............**********************************............\n");
+
+	/* Initialise the yard floor grid and add containers */
 	InitialiseFloor(floor, 'R', 3);
+	AddContainer(floor, 28, 2, 0);
+	AddContainer(floor, 11, 3, 1);
+	AddContainer(floor, 41, 2, 1);
+	AddContainer(floor, 42, 2, 1);
+	AddContainer(floor, 42, 2, 1);
+	AddContainer(floor, 34, 2, 0);
+	AddContainer(floor, 36, 3, 1);
+	AddContainer(floor, 37, 2, 1);
+	AddContainer(floor, 53, 2, 0);
+	AddContainer(floor, 30, 3, 1);
+
+	/* Print status */
+	printf("C Project\nContainer Yard!  The containers are rushing in!\n");
+	printf("In fact, %.2f sq ft of the yard floor is available for containers!\n\n", FloorAreaAvailable(floor, 20.5, 10.3));
+
+	/* Main simulation loop */
+	while (gameOver != 2) {
+		PrintFloor(floor);
+		input = GetMove();
+		isBlocked = LocateContainer(floor, input, &rowStart, &colStart, &rowEnd, &colEnd);
+		gameOver = MoveContainer(floor, rowStart, colStart, rowEnd, colEnd, isBlocked);
+	}
+
+	/* A container is ready to exit - the simulation is over */
 	PrintFloor(floor);
+	printf("\nCongratulations, you've succeeded!");
 
 	return 0;
 }
@@ -256,10 +300,188 @@ int LocateContainer(int floor[NUM_ROWS][NUM_COLS], char move, int *rowStart, int
 	return -1;
 }
 
+int MoveContainer(int floor[NUM_ROWS][NUM_COLS], int r0, int c0, int r1, int c1, int isBlocked) {
+	/*
+	This function moves the specified containers. The container will move left or up if they can and if they can't they'll move the opposite way until it reaches the boundary or another container.
+	Author: Tyler Kim
+	Inputs:
+	floor: 2D array representing the container yard
+	4 integer values representing the position of the container to move.
+	1 integer value representing whether the container is blocked from both front and back
+	Output:
+	This function has one integer output depending on where the container is placed.
+	*/
 
-int MoveContainer(int floor[NUM_ROWS][NUM_COLS], int r0, int c0, int r1, int c1, int isBlocked)
-{
-	int i, j;	
-	return 0;
-} 
+	int Letter = floor[r0][c0];
+	int sizeR = r1 - r0;
+	int sizeC = c1 - c0;
+	int i, j;
+	int limit = 0;
+
+	if (isBlocked == 0) {
+		if (sizeR > 0) {
+			if (floor[r0 - 1][c0] == ENTRY || floor[r1 + 1][c0] == ENTRY) {
+				return 1;
+			}
+			else if (floor[r0 - 1][c0] == EXIT || floor[r1 + 1][c0] == EXIT) {
+				return 2;
+			}
+			else return -1;
+		}
+		else if (sizeC > 0) {
+			if (floor[r0][c0 - 1] == ENTRY || floor[r0][c1 + 1] == ENTRY) {
+				return 1;
+			}
+			else if (floor[r0][c0 - 1] == EXIT || floor[r0][c1 + 1] == EXIT) {
+				return 2;
+			}
+			else return -1;
+		}
+	}
+	else {
+
+		for (i = r0; i <= r1; i++) {
+			for (j = c0; j <= c1; j++) {
+				floor[i][j] = 0;
+			}
+		}
+
+		if (sizeR > 0) {
+			if (r0 > 1) {
+				for (i = 1; i < r0; i++) {
+					if (floor[i][c0] != 0) {
+						limit = i;
+					}
+				}
+				if (limit == r0 - 1) {
+					limit = NUM_ROWS - 1;
+					for (i = NUM_ROWS - 2; i > r1; i--) {
+						if (floor[i][c0] != 0) {
+							limit = i;
+						}
+					}
+					r1 = limit - 1;
+					r0 = limit - sizeR - 1;
+					for (i = r0; i <= r1; i++) {
+						floor[i][c0] = Letter;
+					}
+					if (floor[NUM_ROWS - 1][c0] == EXIT) {
+						return 2;
+					}
+					else if (floor[NUM_ROWS - 1][c0] == ENTRY) {
+						return 1;
+					}
+					else {
+						return 0;
+					}
+				}
+				r1 = limit + 1 + sizeR;
+				r0 = limit + 1;
+				for (i = r0; i <= r1; i++) {
+					floor[i][c0] = Letter;
+				}
+				if (floor[0][c0] == EXIT) {
+					return 2;
+				}
+				else if (floor[0][c0] == ENTRY) {
+					return 1;
+				}
+				else {
+					return 0;
+				}
+			}
+			else if (r0 == 1) {
+				limit = NUM_ROWS - 1;
+				for (i = NUM_ROWS - 2; i > r1; i--) {
+					if (floor[i][c0] != 0) {
+						limit = i;
+					}
+				}
+				r1 = limit - 1;
+				r0 = limit - sizeR - 1;
+				for (i = r0; i <= r1; i++) {
+					floor[i][c0] = Letter;
+				}
+				if (floor[NUM_ROWS - 1][c0] == EXIT) {
+					return 2;
+				}
+				else if (floor[NUM_ROWS - 1][c0] == ENTRY) {
+					return 1;
+				}
+				else {
+					return 0;
+				}
+			}
+		}
+		if (sizeC > 0) {
+			if (c0 > 1) {
+				for (j = 1; j < c0; j++) {
+					if (floor[r0][j] != 0) {
+						limit = j;
+					}
+				}
+				if (limit == c0 - 1) {
+					limit = NUM_COLS - 1;
+					for (j = NUM_COLS - 2; j > c1; j--) {
+						if (floor[r0][j] != 0) {
+							limit = j;
+						}
+					}
+					c1 = limit - 1;
+					c0 = limit - sizeC - 1;
+					for (j = c0; j <= c1; j++) {
+						floor[r0][j] = Letter;
+					}
+					if (floor[r0][NUM_COLS - 1] == EXIT) {
+						return 2;
+					}
+					else if (floor[r0][NUM_COLS - 1] == ENTRY) {
+						return 1;
+					}
+					else {
+						return 0;
+					}
+				}
+				c1 = 1 + limit + sizeC;
+				c0 = 1 + limit;
+				for (j = c0; j <= c1; j++) {
+					floor[r0][j] = Letter;
+				}
+				if (floor[r0][0] == ENTRY) {
+					return 1;
+				}
+				else if (floor[r0][0] == EXIT) {
+					return 2;
+				}
+				else {
+					return 0;
+				}
+			}
+			else if (c0 == 1) {
+				limit = NUM_COLS - 1;
+				for (j = NUM_COLS - 2; j > c1; j--) {
+					if (floor[r0][j] != 0) {
+						limit = j;
+					}
+				}
+				c1 = limit - 1;
+				c0 = limit - sizeC - 1;
+				for (j = c0; j <= c1; j++) {
+					floor[r0][j] = Letter;
+				}
+				if (floor[r0][NUM_COLS - 1] == ENTRY) {
+					return 1;
+				}
+				else if (floor[r0][NUM_COLS - 1] == EXIT) {
+					return 2;
+				}
+				else {
+					return 0;
+				}
+			}
+		}
+		return 0;
+	}
+	return -1;
+}
 
